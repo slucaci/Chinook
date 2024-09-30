@@ -1,36 +1,39 @@
-from sqlite3 import dbapi2
 import psycopg2
-
 from sqlalchemy import (
     create_engine, Column, Float, ForeignKey, Integer, String
 )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
+
 from sqlalchemy.orm import sessionmaker
 
+# Define the PostgreSQL database connection string
+db_url = "postgresql://35389:1234@localhost:5432/chinook"  # Adjust the username, password, and database name
 
-# executing the instructions from the "chinook" database
-connection = psycopg2.connect(database="chinook",password="1234")
-cursor = connection.cursor()
-base = declarative_base()
+# Create the SQLAlchemy engine
+engine = create_engine(db_url)
 
+# Create the base class for declarative models
+Base = declarative_base()
 
-# create a class-based model for the "Artist" table
-class Artist(base):
+# Define the class-based models
+
+# Create a class-based model for the "Artist" table
+class Artist(Base):
     __tablename__ = "Artist"
     ArtistId = Column(Integer, primary_key=True)
     Name = Column(String)
 
 
-# create a class-based model for the "Album" table
-class Album(base):
+# Create a class-based model for the "Album" table
+class Album(Base):
     __tablename__ = "Album"
     AlbumId = Column(Integer, primary_key=True)
     Title = Column(String)
     ArtistId = Column(Integer, ForeignKey("Artist.ArtistId"))
 
 
-# create a class-based model for the "Track" table
-class Track(base):
+# Create a class-based model for the "Track" table
+class Track(Base):
     __tablename__ = "Track"
     TrackId = Column(Integer, primary_key=True)
     Name = Column(String)
@@ -43,51 +46,37 @@ class Track(base):
     UnitPrice = Column(Float)
 
 
-# instead of connecting to the database directly, we will ask for a session
-# create a new instance of sessionmaker, then point to our engine (the db)
-Session = sessionmaker(dbapi2)
-# opens an actual session by calling the Session() subclass defined above
+# Create a session
+Session = sessionmaker(engine)
 session = Session()
 
-# creating the database using declarative_base subclass
-base.metadata.create_all(dbapi2)
+# Create the database tables if they don't exist
+Base.metadata.create_all(engine)
 
-
-# Query 1 - select all records from the "Artist" table
-# artists = session.query(Artist)
+# Query 1 - Select all records from the "Artist" table
+# artists = session.query(Artist).all()  # Use `.all()` to fetch all results
 # for artist in artists:
 #     print(artist.ArtistId, artist.Name, sep=" | ")
 
-# Query 2 - select only the "Name" column from the "Artist" table
-# artists = session.query(Artist)
+# Query 2 - Select only the "Name" column from the "Artist" table
+# artists = session.query(Artist.Name).all()
 # for artist in artists:
 #     print(artist.Name)
 
-# Query 3 - select only "Queen" from the "Artist" table
-# artist = session.query(Artist).filter_by(Name="Queen").first()
-# print(artist.ArtistId, artist.Name, sep=" | ")
+# Query 3 - Select only "Queen" from the "Artist" table
+# artists = session.query(Artist).filter_by(Name="Queen").first()
+# print(artists.ArtistId, artists.Name, sep=" | ")
 
-# Query 4 - select only by "ArtistId" #51 from the "Artist" table
-# artist = session.query(Artist).filter_by(ArtistId=51).first()
-# print(artist.ArtistId, artist.Name, sep=" | ")
+# Query 4 - Select only by "ArtistId" #51 from the "Artist" table
+artists = session.query(Artist).filter_by(ArtistId=51).first()
+print(artists.ArtistId, artists.Name, sep=" | ")
 
-# Query 5 - select only the albums with "ArtistId" #51 on the "Album" table
-# albums = session.query(Album).filter_by(ArtistId=51)
-# for album in albums:
-#     print(album.AlbumId, album.Title, album.ArtistId, sep=" | ")
+# Query 5 - Select only the albums with "ArtistId" #51 on the "Album" table
+albums = session.query(Album).filter_by(ArtistId=51)
+for album in albums:
+    print(album.AlbumId, album.Title, album.ArtistId, sep=" | ")
 
-# Query 6 - select all tracks where the composer is "Queen" from the "Track" table
+# Query 6 - Select all tracks where the composer is "Queen" from the "Track" table
 tracks = session.query(Track).filter_by(Composer="Queen")
 for track in tracks:
-    print(
-        track.TrackId,
-        track.Name,
-        track.AlbumId,
-        track.MediaTypeId,
-        track.GenreId,
-        track.Composer,
-        track.Milliseconds,
-        track.Bytes,
-        track.UnitPrice,
-        sep=" | "
-    )
+    print(track.TrackId, track.Name, track.AlbumId, track.MediaTypeId, track.GenreId, track.Composer, track.Milliseconds, track.Bytes, track.UnitPrice, sep=" | ")
